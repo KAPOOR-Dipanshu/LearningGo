@@ -7,8 +7,10 @@ import (
 
 func SetupRoutes() *mux.Router {
 	router := mux.NewRouter()
-	router.HandleFunc("/items", handlers.GetItems).Methods("GET")
-	router.HandleFunc("/items", handlers.CreateItem).Methods("POST")
-	router.HandleFunc("/mongodb-data", handlers.GetDataFromMongoDB).Methods("GET")
+	router.HandleFunc("/employees", handlers.FetchAllEmployees).Methods("GET")
+	router.HandleFunc("/employees/{id}", handlers.FetchEmployeeById).Methods("GET")
+	router.HandleFunc("/employees", handlers.CreateEmployee).Methods("POST")
+	router.HandleFunc("/employees/{id}", handlers.PatchEmployee).Methods("PATCH")
+	router.HandleFunc("/employees/{id}", handlers.RemoveEmployee).Methods("DELETE")
 	return router
 }
