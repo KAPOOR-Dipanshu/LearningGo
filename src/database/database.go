@@ -3,9 +3,11 @@ package database
 import (
 	"context"
 	"go-api-app/src/constants"
+	"go-api-app/src/models"
 	"log"
 	"sync"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -47,25 +49,51 @@ func GetCollection() *mongo.Collection {
 	return collection
 }
 
-func GetAllData() ([]map[string]any, error) {
-    var results []map[string]any
-    cursor, err := GetCollection().Find(context.Background(), map[string]any{})
-    if err != nil {
-        return nil, err
-    }
-    defer cursor.Close(context.Background())
-    if err = cursor.All(context.Background(), &results); err != nil {
-        return nil, err
-    }
-    return results, nil
+func GetAllEmployees() ([]models.Employee, error) {
+	var results []models.Employee
+	cursor, err := GetCollection().Find(context.Background(), bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.Background())
+	if err = cursor.All(context.Background(), &results); err != nil {
+		return nil, err
+	}
+	return results, nil
 }
 
-func GetDataByID(id string) (map[string]any, error) {
-    var result map[string]any
-    filter := map[string]any{"_id": id}
-    err := GetCollection().FindOne(context.Background(), filter).Decode(&result)
-    if err != nil {
-        return nil, err
-    }
-    return result, nil
+func GetEmployeeByID(id int) (*models.Employee, error) {
+	var result models.Employee
+	filter := bson.M{"id": id}
+	err := GetCollection().FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func InsertEmployee(emp models.Employee) (int32, error) {
+	currentCount, err := GetCollection().CountDocuments(context.Background(), bson.M{})
+	if err != nil {
+		return 0, err
+	}
+	emp.ID = int32(currentCount) + 1
+	_, err = GetCollection().InsertOne(context.Background(), emp)
+	if err != nil {
+		return 0, err
+	}
+	return emp.ID, nil
+}
+
+func UpdateEmployee(id int, emp models.Employee) error {
+	filter := bson.M{"id": id}
+	update := bson.M{"$set": emp}
+	_, err := GetCollection().UpdateOne(context.Background(), filter, update)
+	return err
+}
+
+func DeleteEmployee(id int) error {
+	filter := bson.M{"id": id}
+	_, err := GetCollection().DeleteOne(context.Background(), filter)
+	return err
 }
