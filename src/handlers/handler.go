@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"go-api-app/src/database"
 	"go-api-app/src/models"
+	"go-api-app/src/validator"
 	"net/http"
 	"strconv"
 
@@ -50,9 +51,22 @@ func CreateEmployee(w http.ResponseWriter, r *http.Request) {
 	var emp models.Employee
 	err := json.NewDecoder(r.Body).Decode(&emp)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"status":  "json_decode_failed",
+			"message": err.Error(),
+		})
 		return
 	}
+
+	// Validate the employee struct
+	validationErr := validator.ValidateStruct(emp)
+	if validationErr != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(validationErr)
+		return
+	}
+
 	insertedID, err := database.InsertEmployee(r.Context(), emp)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -85,9 +99,22 @@ func PatchEmployee(w http.ResponseWriter, r *http.Request) {
 	var emp models.Employee
 	err = json.NewDecoder(r.Body).Decode(&emp)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"status":  "json_decode_failed",
+			"message": err.Error(),
+		})
 		return
 	}
+
+	// Validate the employee struct
+	validationErr := validator.ValidateStruct(emp)
+	if validationErr != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(validationErr)
+		return
+	}
+
 	err = database.UpdateEmployee(r.Context(), idInt, emp)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
