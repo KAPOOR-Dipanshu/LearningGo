@@ -7,17 +7,18 @@ WORKDIR /app
 # Copy go mod and sum files
 COPY go.mod go.sum ./
 
-# Download dependencies
-RUN go mod download
-
 # Copy source code
 COPY src/ ./src/
+
+# Download dependencies
+RUN go mod tidy
+RUN go mod download
 
 # Build the binary with optimizations
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./src
 
 # Runtime stage
-FROM alpine:latest
+FROM alpine:3.20
 
 # Install ca-certificates for HTTPS requests (if needed)
 RUN apk --no-cache add ca-certificates
@@ -31,11 +32,8 @@ WORKDIR /app
 # Copy the binary from builder stage
 COPY --from=builder /app/main .
 
-# Copy .env file if it exists
-COPY .env ./
-
 # Change ownership to non-root user
-RUN chown appuser:appgroup main .env
+RUN chown appuser:appgroup main
 
 # Switch to non-root user
 USER appuser

@@ -2,8 +2,6 @@ module go-api-app
 
 go 1.24.0
 
-toolchain go1.24.5
-
 require (
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/gorilla/mux v1.8.1
