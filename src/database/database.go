@@ -95,6 +95,7 @@ func InsertEmployee(ctx context.Context, emp models.Employee) (int32, error) {
 
 // UpdateEmployee updates an employee's information by id.
 func UpdateEmployee(ctx context.Context, id int, emp models.Employee) error {
+	emp.ID = int32(id)
 	filter := bson.M{"id": id}
 	update := bson.M{"$set": emp}
 	_, err := GetCollection().UpdateOne(ctx, filter, update)
