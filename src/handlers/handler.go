@@ -107,6 +107,9 @@ func PatchEmployee(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Always keep the path id as the canonical identifier during updates.
+	emp.ID = int32(idInt)
+
 	// Validate the employee struct
 	validationErr := validator.ValidateStruct(emp)
 	if validationErr != nil {

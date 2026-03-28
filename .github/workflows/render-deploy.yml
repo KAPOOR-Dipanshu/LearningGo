@@ -1,0 +1,81 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect Go version from go.mod
+        id: go-version
+        run: |
+          if [ ! -f go.mod ]; then
+            echo "go_mod_version=1.22" >> "$GITHUB_OUTPUT"
+            echo "Detected go.mod not found; defaulting to Go 1.22"
+            exit 0
+          fi
+          v=$(grep '^go ' go.mod | awk '{print $2}' | tr -d '\r')
+          if [ -z "$v" ]; then
+            v=1.22
+          fi
+          echo "go_mod_version=$v" >> "$GITHUB_OUTPUT"
+          echo "Detected go.mod version: $v"
+
+      - name: Set up Go from go.mod version
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ steps.go-version.outputs.go_mod_version }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/.cache/go-test
+            ~/go/pkg/mod
+          key: go-mod-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-mod-
+
+      - name: Download Go dependencies
+        run: go mod download
+
+      - name: Run validator tests
+        run: go test ./src/validator
+
+      - name: Build application
+        run: go build -o bin/app ./src
+
+      - name: Ensure artifact exists
+        run: test -f bin/app
+
+  docker-deploy:
+    name: Docker Build + Render Deploy
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t app:latest .
+
+      - name: Trigger Render webhook deploy
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
+            echo "ERROR: RENDER_DEPLOY_HOOK is not configured";
+            exit 1;
+          fi
+          curl -X POST --fail --silent --show-error "$RENDER_DEPLOY_HOOK"
+
+      - name: Deployment completed
+        run: echo "Render deploy webhook called successfully"
