@@ -3,8 +3,8 @@
 set -euo pipefail
 
 if [[ $# -lt 1 ]]; then
-  echo "Usage: $0 <dockerhub-username> [image-name]"
-  echo "Example: $0 johndoe go-api-app"
+  echo "Usage: $0 <dockerhub-username> [image-name]" >&2
+  echo "Example: $0 johndoe go-api-app" >&2
   exit 1
 fi
 
